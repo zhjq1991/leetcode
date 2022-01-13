@@ -47,7 +47,7 @@ public:
 };
 ```
 
-+ 解法二
++ 解法二（此解法的时间复杂度较低）
 ```C++
 class Solution {
 public:
@@ -61,8 +61,117 @@ public:
             res.push_back(str);
             return;
         }
-        if(left > 0) helper(res, str + "(", left - 1, right);
+        if(left > 0) helper(res, str + "(", left - 1, right);  
         if(right > left) helper(res, str + ")", left, right - 1);
     }
 };
+```
+> 1. 上述两种解法的要点是左括号数必须与右括号数匹配
+> 2. 还有就是递归函数的套路
+
++ 解法三
+```C++
+class Solution {
+public:
+    vector<string>result;
+    
+    vector<string> generateParenthesis(int n) {
+        helper(0,0,n,"");
+        return result;
+    }
+
+    void helper(int open,int close,int n,string current)
+    {
+        if(current.length()==n*2)
+        {
+            result.push_back(current);
+            return;
+        }
+        if(open<n)  helper(open+1,close,n,current+"(");
+        if(close<open)  helper(open,close+1,n,current+")");
+    }
+};
+```
+
+### 98、验证二叉搜索树
+
++ 解法一： 递归
+```C++
+class Solution {
+public:
+    bool helper(TreeNode* root, long long lower, long long upper) {
+        if (root == nullptr) {
+            return true;
+        }
+        if (root -> val <= lower || root -> val >= upper) {
+            return false;
+        }
+        return helper(root -> left, lower, root -> val) && helper(root -> right, root -> val, upper);
+    }
+    bool isValidBST(TreeNode* root) {
+        return helper(root, LONG_MIN, LONG_MAX);
+    }
+};
+```
++ 解法二
+```C++
+bool isValidBST(TreeNode* root) {
+    return isValidBST(root, NULL, NULL);
+}
+
+bool isValidBST(TreeNode* root, TreeNode* minNode, TreeNode* maxNode) {
+    if(!root) return true;
+    if(minNode && root->val <= minNode->val || maxNode && root->val >= maxNode->val)
+        return false;
+    return isValidBST(root->left, minNode, root) && isValidBST(root->right, root, maxNode);
+}
+```
+
+### 109 二叉树的最大深度
+
++ 解法一 : 深度优先搜索
+```C++
+class Solution {
+public:
+    int maxDepth(TreeNode* root) {
+        if (root == nullptr) return 0;
+        return max(maxDepth(root->left), maxDepth(root->right)) + 1;
+    }
+};
+```
+
+```C++
+int maxDepth(TreeNode *root)
+{
+    return root == NULL ? 0 : max(maxDepth(root -> left), maxDepth(root -> right)) + 1;
+}
+```
+
++ 解法二：广度优先搜索
+```C++
+int maxDepth(TreeNode *root)
+{
+    if(root == NULL)
+        return 0;
+    
+    int res = 0;
+    queue<TreeNode *> q;
+    q.push(root);
+    while(!q.empty())
+    {
+        ++ res;
+        for(int i = 0, n = q.size(); i < n; ++ i)
+        {
+            TreeNode *p = q.front();
+            q.pop();
+            
+            if(p -> left != NULL)
+                q.push(p -> left);
+            if(p -> right != NULL)
+                q.push(p -> right);
+        }
+    }
+    
+    return res;
+}
 ```
