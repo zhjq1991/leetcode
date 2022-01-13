@@ -175,3 +175,92 @@ int maxDepth(TreeNode *root)
     return res;
 }
 ```
+
+### 111、二叉树的最小深度
+
++ 解法一：深度优先搜索
+```C++
+class Solution {
+public:
+    int minDepth(TreeNode *root) {
+        if (root == nullptr) {
+            return 0;
+        }
+
+        if (root->left == nullptr && root->right == nullptr) {
+            return 1;
+        }
+
+        int min_depth = INT_MAX;
+        if (root->left != nullptr) {
+            min_depth = min(minDepth(root->left), min_depth);
+        }
+        if (root->right != nullptr) {
+            min_depth = min(minDepth(root->right), min_depth);
+        }
+
+        return min_depth + 1;
+    }
+};
+```
+
++ 解法二：广度优先搜索
+```C++
+class Solution {
+public:
+    int minDepth(TreeNode *root) {
+        if (root == nullptr) {
+            return 0;
+        }
+
+        queue<pair<TreeNode *, int> > que;
+        que.emplace(root, 1);
+        while (!que.empty()) {
+            TreeNode *node = que.front().first;
+            int depth = que.front().second;
+            que.pop();
+            if (node->left == nullptr && node->right == nullptr) {
+                return depth;
+            }
+            if (node->left != nullptr) {
+                que.emplace(node->left, depth + 1);
+            }
+            if (node->right != nullptr) {
+                que.emplace(node->right, depth + 1);
+            }
+        }
+
+        return 0;
+    }
+};
+```
+```C++
+// 广度优先搜索
+// 时间复杂度较低
+int minDepth(TreeNode* root) {
+    if (root == NULL) return 0;
+    queue<TreeNode*> Q;
+    Q.push(root);
+    int i = 0;
+    while (!Q.empty()) {
+        i++;
+        int k = Q.size();
+        for (int j=0; j<k; j++) {
+            TreeNode* rt = Q.front();
+            if (rt->left) Q.push(rt->left);
+            if (rt->right) Q.push(rt->right);
+            Q.pop();
+            if (rt->left==NULL && rt->right==NULL) return i;
+        }
+    }
+    return -1; 
+}
+```
+
+```C++
+int minDepth(TreeNode* root) {
+    if (!root) return 0;
+    int L = minDepth(root->left), R = minDepth(root->right);
+    return 1 + (min(L, R) ? min(L, R) : max(L, R));
+}
+```
