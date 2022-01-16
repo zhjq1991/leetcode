@@ -425,3 +425,163 @@ double pow(double x, int n) {
         return t * t;
     }
 }
+```
+-------------------------------
+
+### 169、多数元素
+
++ 方法一：哈希表
+
+```C++
+class Solution {
+public:
+    int majorityElement(vector<int>& nums) {
+        unordered_map<int, int> counts;
+        int majority = 0, cnt = 0;
+        for (int num: nums) {
+            ++counts[num];
+            if (counts[num] > cnt) {
+                majority = num;
+                cnt = counts[num];
+            }
+        }
+        return majority;
+    }
+};
+
+// 哈希
+class Solution {
+public:
+    int majorityElement(vector<int>& nums) {
+        unordered_map<int, int> counter;
+        for (int num : nums) {
+            if (++counter[num] > nums.size() / 2) {
+                return num;
+            }
+        }
+        return 0;
+    }
+};
+```
+
++ 方法二：分治
+
+```C++
+class Solution {
+    int count_in_range(vector<int>& nums, int target, int lo, int hi) {
+        int count = 0;
+        for (int i = lo; i <= hi; ++i)
+            if (nums[i] == target)
+                ++count;
+        return count;
+    }
+    int majority_element_rec(vector<int>& nums, int lo, int hi) {
+        if (lo == hi)
+            return nums[lo];
+        int mid = (lo + hi) / 2;
+        int left_majority = majority_element_rec(nums, lo, mid);
+        int right_majority = majority_element_rec(nums, mid + 1, hi);
+        if (count_in_range(nums, left_majority, lo, hi) > (hi - lo + 1) / 2)
+            return left_majority;
+        if (count_in_range(nums, right_majority, lo, hi) > (hi - lo + 1) / 2)
+            return right_majority;
+        return -1;
+    }
+public:
+    int majorityElement(vector<int>& nums) {
+        return majority_element_rec(nums, 0, nums.size() - 1);
+    }
+};
+
+// 分治
+class Solution {
+public:
+    int majorityElement(vector<int>& nums) {
+        return majority(nums, 0, nums.size() - 1);
+    }
+private:
+    int majority(vector<int>& nums, int l, int r) {
+        if (l == r) {
+            return nums[l];
+        }
+        int m = l + (r - l) / 2, lm = majority(nums, l, m), rm = majority(nums, m + 1, r);
+        if (lm == rm) {
+            return lm;
+        }
+        return count(nums.begin() + l, nums.begin() + r + 1, lm) > count(nums.begin() + l, nums.begin() + r + 1, rm) ? lm : rm;
+    }
+}; 
+```
+
+### 17、电话号码的字母组合
+
++ 解法一：回溯
+
+```C++
+class Solution {
+public:
+    vector<string> letterCombinations(string digits) {
+        vector<string> combinations;
+        if (digits.empty()) {
+            return combinations;
+        }
+        unordered_map<char, string> phoneMap{
+            {'2', "abc"},
+            {'3', "def"},
+            {'4', "ghi"},
+            {'5', "jkl"},
+            {'6', "mno"},
+            {'7', "pqrs"},
+            {'8', "tuv"},
+            {'9', "wxyz"}
+        };
+        string combination;
+        backtrack(combinations, phoneMap, digits, 0, combination);
+        return combinations;
+    }
+
+    void backtrack(vector<string>& combinations, const unordered_map<char, string>& phoneMap, const string& digits, int index, string& combination) {
+        if (index == digits.length()) {
+            combinations.push_back(combination);
+        } else {
+            char digit = digits[index];
+            const string& letters = phoneMap.at(digit);
+            for (const char& letter: letters) {
+                combination.push_back(letter);
+                backtrack(combinations, phoneMap, digits, index + 1, combination);
+                combination.pop_back();
+            }
+        }
+    }
+};
+```
+-------------------------
++ 解法二
+
+```C++
+class Solution {
+public:
+    const vector<string> pad = {
+        "", "", "abc", "def", "ghi", "jkl",
+        "mno", "pqrs", "tuv", "wxyz"
+    };
+    
+    vector<string> letterCombinations(string digits) {
+        if (digits.empty()) return {};
+		vector<string> result;
+        result.push_back("");
+        
+        for(auto digit: digits) {
+            vector<string> tmp;
+            for(auto candidate: pad[digit - '0']) {
+                for(auto s: result) {
+                    tmp.push_back(s + candidate);
+                }
+            }
+            result.swap(tmp);
+        }
+        return result;
+    }
+};
+```
+

@@ -540,3 +540,14 @@ __STL_TEMPLATE_NULL struct __type_traits<long double> {
     typedef __true_type has_trivial_destructor;
     typedef __true_type is_POD_type;
 };
+
+// 注意，以下针对原生指针设计 __type_traits 偏特化版本
+// 原生指针亦被视为一种标量型别
+template <class T>
+struct __type_traits<T*> {
+    typedef __true_type has_trivial_default_constructor;
+    typedef __true_type has_trivial_copy_constructor;
+    typedef __true_type has_trivial_assignment_operator;
+    typedef __true_type has_trivial_destructor;
+    typedef __true_type is_POD_type;
+};
