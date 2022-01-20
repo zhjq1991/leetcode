@@ -640,3 +640,56 @@ public:
     }
 };
 ```
+
+### 102、二叉树的层序遍历
+
++ 方法一：广度优先搜索
+
+```C++
+class Solution {
+public:
+    vector<vector<int>> levelOrder(TreeNode* root) {
+        vector <vector <int>> ret;
+        if (!root) {
+            return ret;
+        }
+
+        queue <TreeNode*> q;
+        q.push(root);
+        while (!q.empty()) {
+            int currentLevelSize = q.size();
+            ret.push_back(vector <int> ());
+            for (int i = 1; i <= currentLevelSize; ++i) {
+                auto node = q.front(); q.pop();
+                ret.back().push_back(node->val);
+                if (node->left) q.push(node->left);
+                if (node->right) q.push(node->right);
+            }
+        }
+        
+        return ret;
+    }
+};
+```
+------------------------
++ 解法二
+
+```C++
+vector<vector<int>> ret;
+
+void buildVector(TreeNode *root, int depth)
+{
+    if(root == NULL) return;
+    if(ret.size() == depth)
+        ret.push_back(vector<int>());
+    
+    ret[depth].push_back(root->val);
+    buildVector(root->left, depth + 1);
+    buildVector(root->right, depth + 1);
+}
+
+vector<vector<int> > levelOrder(TreeNode *root) {
+    buildVector(root, 0);
+    return ret;
+}
+```
