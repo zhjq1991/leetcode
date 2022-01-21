@@ -723,3 +723,99 @@ vector<vector<int> > levelOrder(TreeNode *root) {
     return ret;
 }
 ```
+
+### 515、在每个树行中找最大值
+
++ 解法一：BFS
+  
+```C++
+class Solution {
+public:
+    vector<int> largestValues(TreeNode* root) {
+        vector<int> res;
+        if (root == nullptr) return res;
+
+        queue<TreeNode*> q;
+        q.push(root);
+
+        while (!q.empty())
+        {
+            int size = q.size();
+            int maxVal = INT_MIN;               //要求最大值，所以初始化为最小
+            while (size -- )
+            {
+                TreeNode* t = q.front();
+                q.pop();
+                if (t->left) q.push(t->left);
+                if (t->right) q.push(t->right);
+
+                maxVal = max(maxVal, t->val);   //更新最大值
+            }
+
+            res.push_back(maxVal);              //当前层已遍历完毕，存入当前层最大值
+        }
+
+        return res;
+    }
+};
+```
+
++ 解法二
+
+```C++
+class Solution {
+    vector<int> solution;
+public:
+    void helper(TreeNode* node, int cl) {
+        if (node == NULL) {
+            return;
+        }
+        if (solution.size() < cl + 1) {
+            solution.push_back(node->val);
+        } else {
+            if (solution[cl] < node->val) {
+                solution[cl] = node->val;
+            }
+        }
+        helper(node->left, cl+1);
+        helper(node->right, cl+1);
+    }
+    //vector<int> largestValues(TreeNode* root) {
+    vector<int> findValueMostElement(TreeNode* root) {
+        if(root == NULL) {
+            return solution;
+        }
+        
+        helper(root, 0);
+        return solution;
+    }
+};
+```
+----------------------
+```C++
+class Solution {
+public:
+    vector<int> largestValues(TreeNode* root) {
+        vector<int> maxs;
+        find(root, 0, maxs);
+        return maxs;
+    }
+
+private:
+    void find(TreeNode* node, int row, vector<int>& maxs) {
+        if (!node) {
+            return;
+        }
+
+        if (row >= maxs.size()) {
+            maxs.push_back(node->val);
+        }
+        else {
+            maxs[row] = max(maxs[row], node->val);
+        }
+
+        find(node->left, row + 1, maxs);
+        find(node->right, row + 1, maxs);
+    }
+};
+```
