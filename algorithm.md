@@ -819,3 +819,396 @@ private:
     }
 };
 ```
+
+### 200、岛屿数量
+
++ 解法一：深度优先搜索
+```C++
+class Solution {
+private:
+    void dfs(vector<vector<char>>& grid, int r, int c) {
+        int nr = grid.size();
+        int nc = grid[0].size();
+
+        grid[r][c] = '0';
+        if (r - 1 >= 0 && grid[r-1][c] == '1') dfs(grid, r - 1, c);
+        if (r + 1 < nr && grid[r+1][c] == '1') dfs(grid, r + 1, c);
+        if (c - 1 >= 0 && grid[r][c-1] == '1') dfs(grid, r, c - 1);
+        if (c + 1 < nc && grid[r][c+1] == '1') dfs(grid, r, c + 1);
+    }
+
+public:
+    int numIslands(vector<vector<char>>& grid) {
+        int nr = grid.size();
+        if (!nr) return 0;
+        int nc = grid[0].size();
+
+        int num_islands = 0;
+        for (int r = 0; r < nr; ++r) {
+            for (int c = 0; c < nc; ++c) {
+                if (grid[r][c] == '1') {
+                    ++num_islands;
+                    dfs(grid, r, c);
+                }
+            }
+        }
+
+        return num_islands;
+    }
+};
+```
+------------------------------------------------
+```C++
+class Solution {
+public:
+    int numIslands(vector<vector<char>>& grid) {
+        int m = grid.size(), n = m ? grid[0].size() : 0, islands = 0, offsets[] = {0, 1, 0, -1, 0};
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (grid[i][j] == '1') {
+                    islands++;
+                    grid[i][j] = '0';
+                    queue<pair<int, int>> todo;
+                    todo.push({i, j});
+                    while (!todo.empty()) {
+                        pair<int, int> p = todo.front();
+                        todo.pop();
+                        for (int k = 0; k < 4; k++) {
+                            int r = p.first + offsets[k], c = p.second + offsets[k + 1];
+                            if (r >= 0 && r < m && c >= 0 && c < n && grid[r][c] == '1') {
+                                grid[r][c] = '0';
+                                todo.push({r, c});
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return islands;
+    }
+};
+```
+-----------------------
++ 方法二：广度优先搜索
+
+```C++
+class Solution {
+public:
+    int numIslands(vector<vector<char>>& grid) {
+        int nr = grid.size();
+        if (!nr) return 0;
+        int nc = grid[0].size();
+
+        int num_islands = 0;
+        for (int r = 0; r < nr; ++r) {
+            for (int c = 0; c < nc; ++c) {
+                if (grid[r][c] == '1') {
+                    ++num_islands;
+                    grid[r][c] = '0';
+                    queue<pair<int, int>> neighbors;
+                    neighbors.push({r, c});
+                    while (!neighbors.empty()) {
+                        auto rc = neighbors.front();
+                        neighbors.pop();
+                        int row = rc.first, col = rc.second;
+                        if (row - 1 >= 0 && grid[row-1][col] == '1') {
+                            neighbors.push({row-1, col});
+                            grid[row-1][col] = '0';
+                        }
+                        if (row + 1 < nr && grid[row+1][col] == '1') {
+                            neighbors.push({row+1, col});
+                            grid[row+1][col] = '0';
+                        }
+                        if (col - 1 >= 0 && grid[row][col-1] == '1') {
+                            neighbors.push({row, col-1});
+                            grid[row][col-1] = '0';
+                        }
+                        if (col + 1 < nc && grid[row][col+1] == '1') {
+                            neighbors.push({row, col+1});
+                            grid[row][col+1] = '0';
+                        }
+                    }
+                }
+            }
+        }
+
+        return num_islands;
+    }
+};
+```
+------------------------
+```C++
+class Solution {
+public:
+    int numIslands(vector<vector<char>>& grid) {
+        int m = grid.size(), n = m ? grid[0].size() : 0, islands = 0;
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (grid[i][j] == '1') {
+                    islands++;
+                    eraseIslands(grid, i, j);
+                }
+            }
+        }
+        return islands;
+    }
+private:
+    void eraseIslands(vector<vector<char>>& grid, int i, int j) {
+        int m = grid.size(), n = grid[0].size();
+        if (i < 0 || i == m || j < 0 || j == n || grid[i][j] == '0') {
+            return;
+        }
+        grid[i][j] = '0';
+        eraseIslands(grid, i - 1, j);
+        eraseIslands(grid, i + 1, j);
+        eraseIslands(grid, i, j - 1);
+        eraseIslands(grid, i, j + 1);
+    }
+};
+```
+
+### 126、单词接龙II
+```C++
+    vector<vector<string>> findLadders(string beginWord, string endWord, unordered_set<string> &wordList) {
+        //very interesting problem
+        //It can be solved with standard BFS. The tricky idea is doing BFS of paths instead of words!
+        //Then the queue becomes a queue of paths.
+        vector<vector<string>> ans;
+        queue<vector<string>> paths;
+        wordList.insert(endWord);
+        paths.push({beginWord});
+        int level = 1;
+        int minLevel = INT_MAX;
+        
+        //"visited" records all the visited nodes on this level
+        //these words will never be visited again after this level 
+        //and should be removed from wordList. This is guaranteed
+        // by the shortest path.
+        unordered_set<string> visited; 
+        
+        while (!paths.empty()) {
+            vector<string> path = paths.front();
+            paths.pop();
+            if (path.size() > level) {
+                //reach a new level
+                for (string w : visited) wordList.erase(w);
+                visited.clear();
+                if (path.size() > minLevel)
+                    break;
+                else
+                    level = path.size();
+            }
+            string last = path.back();
+            //find next words in wordList by changing
+            //each element from 'a' to 'z'
+            for (int i = 0; i < last.size(); ++i) {
+                string news = last;
+                for (char c = 'a'; c <= 'z'; ++c) {
+                    news[i] = c;
+                    if (wordList.find(news) != wordList.end()) {
+                    //next word is in wordList
+                    //append this word to path
+                    //path will be reused in the loop
+                    //so copy a new path
+                        vector<string> newpath = path;
+                        newpath.push_back(news);
+                        visited.insert(news);
+                        if (news == endWord) {
+                            minLevel = level;
+                            ans.push_back(newpath);
+                        }
+                        else
+                            paths.push(newpath);
+                    }
+                }
+            }
+        }
+        return ans;
+    }
+```
+
+### 529、扫雷游戏
++ 解法一：深度优先搜索+模拟
+
+```C++
+class Solution {
+public:
+    int dir_x[8] = {0, 1, 0, -1, 1, 1, -1, -1};
+    int dir_y[8] = {1, 0, -1, 0, 1, -1, 1, -1};
+
+    void dfs(vector<vector<char>>& board, int x, int y) {
+        int cnt = 0;
+        for (int i = 0; i < 8; ++i) {
+            int tx = x + dir_x[i];
+            int ty = y + dir_y[i];
+            if (tx < 0 || tx >= board.size() || ty < 0 || ty >= board[0].size()) {
+                continue;
+            }
+            // 不用判断 M，因为如果有 M 的话游戏已经结束了
+            cnt += board[tx][ty] == 'M';
+        }
+        if (cnt > 0) {
+            // 规则 3
+            board[x][y] = cnt + '0';
+        } else {
+            // 规则 2
+            board[x][y] = 'B';
+            for (int i = 0; i < 8; ++i) {
+                int tx = x + dir_x[i];
+                int ty = y + dir_y[i];
+                // 这里不需要在存在 B 的时候继续扩展，因为 B 之前被点击的时候已经被扩展过了
+                if (tx < 0 || tx >= board.size() || ty < 0 || ty >= board[0].size() || board[tx][ty] != 'E') {
+                    continue;
+                }
+                dfs(board, tx, ty);
+            }
+        }
+    }
+
+    vector<vector<char>> updateBoard(vector<vector<char>>& board, vector<int>& click) {
+        int x = click[0], y = click[1];
+        if (board[x][y] == 'M') {
+            // 规则 1
+            board[x][y] = 'X';
+        } else {
+            dfs(board, x, y);
+        }
+        return board;
+    }
+};
+```
+
+### 455、分发饼干
++ 解法一：排序+贪心
+
+```C++
+class Solution {
+public:
+    int findContentChildren(vector<int>& g, vector<int>& s) {
+        sort(g.begin(), g.end());
+        sort(s.begin(), s.end());
+        int numOfChildren = g.size(), numOfCookies = s.size();
+        int count = 0;
+        for (int i = 0, j = 0; i < numOfChildren && j < numOfCookies; i++, j++) {
+            while (j < numOfCookies && g[i] > s[j]) {
+                j++;
+            }
+            if (j < numOfCookies) {
+                count++;
+            }
+        }
+        return count;
+    }
+};
+
+
+
+
+ int findContentChildren(vector<int>& g, vector<int>& s) {
+        sort(g.begin(),g.end());
+        sort(s.begin(),s.end());
+        int numOfChildren = g.size(), numOfCookies = s.size();
+        int i = 0, j=0;
+        while(i<g.numOfChildren && j<numOfCookies){
+            if(s[j]>=g[i])
+                i++; // when the child get the cookie, foward child by 1
+            j++;
+        }
+        return i;
+    }
+```
+
+---------------------------
+
+### 122、购买股票II
++ 解法一：贪心算法
+
+```C++
+class Solution {
+public:
+    int maxProfit(vector<int>& prices) {   
+        int ans = 0;
+        int n = prices.size();
+        for (int i = 1; i < n; ++i) {
+            ans += max(0, prices[i] - prices[i - 1]);
+        }
+        return ans;
+    }
+};
+```
+
+### 55、跳跃游戏
++ 解法一：贪心算法
+```C++
+class Solution {
+public:
+    bool canJump(vector<int>& nums) {
+        int n = nums.size();
+        int rightmost = 0;
+        for (int i = 0; i < n; ++i) {
+            if (i <= rightmost) {
+                rightmost = max(rightmost, i + nums[i]);
+                if (rightmost >= n - 1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+};
+
+
+bool canJump(int A[], int n) {
+    int i = 0;
+    for (int reach = 0; i < n && i <= reach; ++i)
+        reach = max(i + A[i], reach);
+    return i == n;
+}
+```
+-------------------------------------
+
+### 69、sqrt(x)
+
++ 解法一：二分查找法
+
+```C++
+class Solution {
+public:
+    int mySqrt(int x) {
+        int l = 0, r = x, ans = -1;
+        while (l <= r) {
+            int mid = l + (r - l) / 2;
+            if ((long long)mid * mid <= x) {
+                ans = mid;
+                l = mid + 1;
+            } else {
+                r = mid - 1;
+            }
+        }
+        return ans;
+    }
+};
+```
+-------------------------------------
++ 解法二：牛顿迭代法
+
+```C++
+class Solution {
+public:
+    int mySqrt(int x) {
+        if (x == 0) {
+            return 0;
+        }
+
+        double C = x, x0 = x;
+        while (true) {
+            double xi = 0.5 * (x0 + C / x0);
+            if (fabs(x0 - xi) < 1e-7) {
+                break;
+            }
+            x0 = xi;
+        }
+        return int(x0);
+    }
+};
+```
