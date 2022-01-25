@@ -551,3 +551,191 @@ struct __type_traits<T*> {
     typedef __true_type has_trivial_destructor;
     typedef __true_type is_POD_type;
 };
+```
+
+## 4、C++ Primer上的类vector类StrVec
+
+```C++
+class StrVec {
+public:
+    StrVec(): 
+        elements (nullptr), first_free (nullptr), cap (nullptr) { }
+    StrVec (const StrVec&);
+    StrVec& operator= (const StrVec&);
+    StrVec (StrVec&&);
+    StrVec& operator= (StrVec&&);
+    ~StrVec();
+    void push_back (const string &s);
+    size_t size() const { return first_free - elements; }
+    size_t capacity() const { return cap - elements; }
+    std::string* begin () { return elemnts; }
+    std::string* end() { return first_free; }
+private:
+    static std::allocator<std::string> alloc;
+    void chk_n_alloc()
+    {
+        if (size() == capacity())
+            reallocate();
+    }
+    std::pair<std::string*, std::string*> alloc_n_cpy
+    (const std::string*, const std::string*);
+    void free();
+    void reallocate();
+    std::string *elements;
+    std::string *first_free;
+    std::string* cap;
+};
+
+void StrVec::push_back (const std::string &s) {
+    chk_n_alloc();
+    alloc.construct (first_free++, s);
+}
+
+pair<string*, string*>
+StrVec::alloc_n_cpy (const string *b, const string *e) {
+    auto data = alloc.allocate (e - b);
+    return {data, uninitialized_copy (b, e, data)};
+}
+
+const StrVec::free() {
+    if (elements) {
+        for (auto p = first_free; p != elements; )
+            alloc.destroy (--p);
+        alloc.deallocate (first_free, capacity());
+    }
+}
+
+StrVec::StrVec (const StrVec &s) {
+    auto newdata = alloc_n_copy (s.begin(), s.end());
+    elements = newdata.first;
+    first_free = cap = newdata.second;
+}
+
+StrVec::~StrVec()
+{ free(); }
+
+StrVec& StrVec::operator= (const StrVec &rhs) {
+    auto newdata = alloc_n_cpy (rhs.begin(), rhs.end());
+    free();
+    elements = newdata.first;
+    first_free = cap = newdata.second;
+    return *this;
+}
+
+void StrVec::reallocate () {
+    auto newcapacity = size() ? 2 * size() : 1;
+    auto newdata = alloc.allocate (newcapacity);
+    auto dest = newdata;
+    auto elem = elements;
+    for (size_t i = 0; i != size(); ++i)
+        alloc.construct (dest++, std::move (*eleme++));
+    free();
+    elements = newdata;
+    first_free = dest;
+    cap = elements + newcapacity;
+}
+
+void StrVec::reallocate()
+{
+    auto newcapacity = size() ? 2 * size() : 1;
+    auto first = alloc.allocate (newcapacity);
+    auto last = uninitialized_copy (make_move_iterator(begin()),
+                       make_move_iterator(end()), first);
+    free();
+    elements = first;
+    first_free = last;
+    cap = elements + newcapacity;
+}
+
+StrVec::StrVec (StrVec&& s) noexcept
+    : elements (s.elements), first_free (s.first_free), cap (s.cap) {
+        s.elements = s.first_free = s.cap = nullptr;
+}
+
+StrVec& StrVec::operator= (StrVec&& rhs) noexcept {
+    if (this != &rhs) {
+        free();
+        elements = rhs.elements;
+        first_free = rhs.first_free;
+        cap = rhs.cap;
+        rhs.elements = rhs.first_free = rhs.cap = nullptr;
+    }
+    return *this;
+}
+```
+
+### 更新的三五法则
+
++ 与拷贝操作不同，编译器根本不会为某些类合成移动操作。==特别是，如果一个类定义了自己的拷贝构造函数、拷贝复制运算符或者析构函数，编译器就不为它合成移动构造函数和移动复制运算符了。==
++ 如果一个类没有移动操作，通过正常的函数匹配，类会使用对应的拷贝操作来代替移动操作。
++ 只有当一个类没有定义任何自己版本的拷贝控制成员，且类的每个非static数据成员都可以移动时，编译器才会为它合成移动构造函数或移动复制运算符。
++ **==只有当一个类没有定义任何自己版本的拷贝控制成员，且它的所有数据成员都能移动构造或移动赋值时，编译器才会为它合成移动构造函数或移动赋值运算符。==**
++ ==*与拷贝操作不同，移动操作永远不会隐式定义为删除的函数。* **但是，如果我们显式地要求编译器生成`=default`的移动操作，且编译器不能移动所有成员，则编译器会将移动操作定义为删除的函数。**==
++ *与拷贝构造函数不同，移动构造函数被定义为删除的函数的条件是：有类成员定义了自己的拷贝构造函数且未定义移动构造函数，或者是有类成员未定义自己的拷贝构造函数且编译器不能为其合成移动构造函数。移动复制运算符的情况类似。*
++ *如果有类成员的移动构造函数或移动赋值运算符被定义为删除的或或是不可访问的，则类的移动构造函数或移动赋值运算符被定义为删除的。*
++ *类似拷贝构造函数，如果类的析构函数被定义为删除的或不可访问的，则类的移动构造函数被定义为删除的。*
++ *类似拷贝赋值运算符，如果有类成员是`const`的或是引用，则类的移动赋值运算符被定义为删除的。*
++ ==**如果类定义了一个移动构造函数和/或一个移动赋值运算符，则该类的合成拷贝构造函数和拷贝赋值运算符会被定义为删除的。**==
++ ==*定义了一个移动构造函数或移动赋值运算符的类必须也定义自己的拷贝操作。**否则，这些成员默认地被定义为删除的。***==
++ ==如果一个类没有移动构造函数，函数匹配规则保证该类型的对象会被拷贝，即使我们试图调用`move`来移动它们时也是如此。==
++ **区分移动和拷贝的重载函数通常有一个版本接受`const T&`，而另一个版本接受一个`T&&`。**
+```C++
+class StrVec {
+public:
+    void push_back (const std::string&);
+    void push_back (std::string&&);
+};
+
+void StrVec::push_back (const std::string& s) {
+    chk_n_alloc();
+    alloc.construct (first_free++, s);
+}
+
+void StrVec::push_back (std::string&& s) {
+    chk_n_alloc();
+    alloc.construct (first_free++, std::move(s));
+}
+```
+
+### 右值和左值引用成员函数
+
++ 我们指出`this`的左值/右值属性的方式与定义`const`成员函数相同，即，在参数列表后放置一个`引用限定符`：
+```C++
+class Foo {
+public:
+    Foo &operator= (const Foo&) &;  // 只能向可修改的左值赋值    
+};
+Foo &Foo::operator= (const Foo &rhs) &
+{
+    // 执行将rhs赋予本对象所需的工作
+    return *this;
+}
+```
++ 引用限定符可以是`&`或`&&`，分别指出`this`可以指向一个左值或右值。
++ ==类似`const`限定符，引用限定符只能用于（`非static`）成员函数，且必须同时出现在函数的声明和定义中。==
++ ==**一个函数可以同时用`const`和`引用限定`。在此情况下，引用限定符必须跟随在`const`限定符之后。**==
+
+### 重载和引用函数
+
+```C++
+class Foo {
+public:
+    Foo sorted() &&;
+    Foo sorted() const &;
+private:
+    vector<int> data;
+};
+
+Foo Foo::sorted() &&
+{
+    sort (data.begin(), data.end());
+    return *this;
+}
+
+Foo Foo::sorted() const & {
+    Foo ret (*this);
+    sort (ret.data.begin(), ret.data.end());
+    return ret;
+}
+```
++ ==如果一个成员函数有引用限定符，则具有相同参数列表的所有版本都必须有引用限定符。==

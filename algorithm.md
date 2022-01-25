@@ -1212,3 +1212,98 @@ public:
     }
 };
 ```
+
+### 367、有效的完全平方数
+
++ 解法一：二分查找发法
+```C++
+class Solution {
+public:
+    bool isPerfectSquare(int num) {
+        int l = 0, r = num;
+        while (l <= r) {
+            int mid = l + (r - l)/2;
+            if ((long long)mid * mid == num)
+                return true;
+            else if ((long long)mid * mid > num)
+                r = mid - 1;
+            else 
+                l = mid + 1;
+        }
+        return false;
+    }
+};
+```
+--------------------
++ 解法二：牛顿迭代法
+
+```C++
+class Solution {
+public:
+    bool isPerfectSquare(int num) {
+        double x0 = num;
+        while (true) {
+            double x1 = (x0 + num / x0) / 2;
+            if (x0 - x1 < 1e-6) {
+                break;
+            }
+            x0 = x1;
+        }
+        int x = (int) x0;
+        return x * x == num;
+    }
+};
+```
+
+### 33、搜索旋转排序数组
++ 解法一：二分查找法
+
+```C++ 
+class Solution {
+public:
+    int search(vector<int>& nums, int target) {
+        int n = (int)nums.size();
+        if (!n) {
+            return -1;
+        }
+        if (n == 1) {
+            return nums[0] == target ? 0 : -1;
+        }
+        int l = 0, r = n - 1;
+        while (l <= r) {
+            int mid = (l + r) / 2;
+            if (nums[mid] == target) return mid;
+            if (nums[0] <= nums[mid]) {
+                if (nums[0] <= target && target < nums[mid]) {
+                    r = mid - 1;
+                } else {
+                    l = mid + 1;
+                }
+            } else {
+                if (nums[mid] < target && target <= nums[n - 1]) {
+                    l = mid + 1;
+                } else {
+                    r = mid - 1;
+                }
+            }
+        }
+        return -1;
+    }
+}
+
+
+class Solution {
+public:
+    int search(vector<int>& nums, int target) {
+        int lo = 0, hi = nums.size() - 1;
+        while (lo < hi) {
+            int mid = (lo + hi) / 2;
+            if ((nums[0] > target) ^ (nums[0] > nums[mid]) ^ (target > nums[mid]))
+                lo = mid + 1;
+            else
+                hi = mid;
+        }
+        return lo == hi && nums[lo] == target ? lo : -1;
+    }
+};
+```
