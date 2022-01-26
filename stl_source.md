@@ -739,3 +739,376 @@ Foo Foo::sorted() const & {
 }
 ```
 + ==如果一个成员函数有引用限定符，则具有相同参数列表的所有版本都必须有引用限定符。==
+
+## 重载运算与类型转换
+
+1. ==除了重载的函数调用运算符`operator()`之外，其他重载运算符不能含有默认是惨。==
+2. **当一个重载的运算符是成员函数时，`this`绑定到左侧运算对象。==成员运算符函数的（显式）参数数量比运算对象的数量少一个。==**
+3. ==对一个运算符函数来说，它或者是类的成员，或者至少含有一个类类型的参数。==
+4. 重载的运算符的优先级和结合律与对应的内置运算符保持一致。
+5. ==**通常情况下，不应该载逗号、取地址、逻辑与和逻辑或运算符。**==
+6. + *赋值（=）、下标（[ ]）、调用（()）和成员访问箭头（->）运算符必须是成员。*
+   + 复合赋值运算符一般来说应该是成员，但并非必须，这一点与赋值运算符略有不同。
+   + ==改变对象状态的运算符或者与给定类型密切相关的运算符，如递增、递减和解引用运算符，通常应该是成员。==
+   + 具有对称性的运算符可能转换任意一端的运算对象，例如算术、相等性、关系和位运算符等，因此它们通常应该是普通的非成员函数。
+   + ==如果我们想提供含有类对象的混合类型表达式，则运算符必须定义成非成员函数。==
+#### 重载输出运算符`<<`
+  
+1. 通常情况下输出运算符的第一个形参是一个非常量`ostream`对象的引用。
+2. 第二个形参一般来说是一个常量的引用，该常量是我们想要打印的类类型。
+3. 为了与其他输出运算符一致，`operator<<`一般要返回它的`ostream`形参。
+```C++
+ostream &operator<< (ostream &os, const Sales_data &item) {
+    os << item.isbn() << " " << item.units_sold << " "
+       << item.revenue << " " << item.avg_price();
+    return os;
+}
+```
+4. 输出运算符尽量减少格式化操作
+5. **==输入输出运算符必须是非成员函数==**
+6. ==`IO`运算符通常需要读写类的非公有数据成员，所以`IO`运算符一般被声明为友元。==
+#### 重载输入运算符
+1. 输入运算符的第一个形参是运算符将要读取的流的引用，第二个形参时将要读入到的（非常量）对象的引用。
+
+```C++
+istream &operator>> (istream &is, Sales_data &item) {
+    double price;
+    is >> item.bookNo >> item.units_sold >> price;
+    if (is)
+        item.revenue = item.units_sold * price;
+    else
+        item = Sales_data();
+    return is;
+}
+```
+2. ==输入运算符必须处理输入可能失败的情况，而输出运算符不需要。==
+3. ==当读取操作发生错误时，输入运算符应该负责从错误中恢复。==
+
+### 算术和关系运算符
+1. 通常情况下，我们把算术和关系运算符定义成非成员函数以允许对左侧或右侧的运算对象进行转换。因为这些运算符一般不需要改变运算对象的状态，所以形参都是常量的引用。
+2. ==如果类定义了算术运算符，则它一般也会定义一个对应的复合赋值运算符。**此时，最有效的方式是使用复合赋值来定义算术运算符。**==
+```C++
+Sales_data 
+operator+ (const Sales_data &lhs, const Sales_data &rhs) {
+    Sales_data sum - lhs;
+    sum += rhs;
+    return sum;
+}
+```
+#### 相等运算符
+```C++
+bool operator==(const Sales_data &lhs, const Sales_data &rhs) {
+    return lhs.isbn() == rhs.isbn() &&
+           lhs.units_sold == rhs.units_sold &&
+           lhs.revenue == rhs.revenue;
+}
+bool operator!= (const Sales_data &lhs, const Sales_data &rhs) {
+    return !(lhs == rhs);
+}
+```
++ 相等运算符和不相等运算符中的一个应该把工作委托给另外一个，这意味着其中一个运算符应该负责实际比较对象的工作，而另一个运算符则只是调用那个真正工作的运算符。
+
+```C++
+bool operator== (const StrBlob &lhs, const StrBlob &rhs) {
+    return lhs.data == rhs.data;
+}
+bool operator!= (const StrBlob &lhs, const StrBlob &rhs) {
+    return !(lsh == rhs);
+}
+
+bool operator== (const StrBlobPtr &lhs, const StrBlobPtr &rhs) {
+    auto l = lhs.wptr.lock(), r = rhs.wptr.lock();
+    if (l == r)
+        return (!r || lhs.curr == rhs.curr);
+    else
+        return false;
+}
+bool operator!= (const StrBlobPtr &lhs, const StrBlobPtr &rhs) {
+    return !(lhs == rhs);
+}
+
+bool operator== (const StrVec &lhs, const StrVec &rhs) {
+    if (lhs.size() != rhs.size())
+        return false;
+    
+    for (auto itr1 = lhs.begin(), itr2 = rhs.begin(); itr1 != lhs.end() && itr2 != rhs.end(); itr1++, itr2++) {
+        if (*itr1 != *itr2)
+            return false;
+    }
+}
+bool operator!= (const StrVec &lhs, const StrVec &rhs) {
+    return !(lhs == rhs);
+}
+```
+#### 关系运算符
+1. 通常情况下关系运算符应该：
+   + 定义顺序关系，令其与关联容器中对关键字的要求一致；并且
+   + 如果类同时也含有`==`运算符的话，则定义一种关系令其与`==`保持一致。特别是，如果两个对象时`!=`的，那么一个对象应该`<`另外一个。
+2. 如果存在唯一一种逻辑可靠的`<`定义，则应该考虑为这个类定义`<`运算符。如果类同时还包含`==`，则当且仅当`<`的定义和`==`产生的结果一致时才定义`<`运算符。
+```C++
+bool operator< (const StrBlob &s1, const StrBlob &s2) {
+    return *s1.data == *s2.data;
+}
+bool operator<= (const StrBlob &s1, const StrBlob &rhs) {
+    return *s1.data <= *s2.data;
+}
+bool operator> (const StrBlob &s1, const StrBlob &s2) {
+    return *s1.data > *s2.data;
+}
+bool operator>= (const StrBlob &s1, const StrBlob &s2) {
+    return *s1.data >= *s2.data;
+}
+
+bool operator< (const StrBlobPtr &lhs, const StrBlobPtr &rhs) {
+    auto l = lhs.wptr.lock(), r = rhs.wptr.lock();
+    if (l == r) 
+        if (!r)
+            return false;
+        return (lhs.curr < rhs.curr);
+    else
+        return false;
+}
+
+bool operator<= (const StrBlobPtr &lhs, const StrBlobPtr &rhs) {
+    auto l = lhs.wptr.lock(), rhs.wptr.lock();
+    if (l == r) 
+        return (!r || lhs.curr <= lhs.curr>);
+    else
+        return false;
+}
+
+bool operator> (const StrBlobPtr &lhs, const StrBlobPtr &rhs) {
+    auto l = lhs.wptr.lock(), r = rhs.wptr.lock();
+    if (l == r) 
+        if (!r || )
+            return false;
+        return lhs.curr == rhs.curr;
+    else
+        return false;
+}
+bool operator>= (const StrBlobPtr &lhs, const StrBlobPtr &rhs) {
+    auto l = lhs.wptr.lock(), r = rhs.wptr.lock();
+    if (l == r) 
+        return (!r || lhs.curr >= rhs.curr);
+    else
+        return false;
+}
+```
+### 赋值运算符
+
+```C++
+StrVec& StrVec::operator= (const std::initializer_list<string> il) {
+    auto data = alloc_n_cpy (il.begin(), il.end());
+    free();
+    elements = data.first;
+    first_free = cap = data.second;
+    return *this;
+}
+```
++ ==和拷贝赋值及移动赋值运算符一样，其他重载的赋值运算符也必须先释放当前内存空间，再创建一片新空间。==
++ **==不同之处是，这个运算符无须检查对象向自身的赋值，这是因为它的形参`initializer_list<string>`确保`il`与`this`所指的不是同一个对象。==**
++ *我们可以重载赋值运算符。不论形参的类型是什么，==赋值运算符都必须定义为成员函数。==*
+
+### 下标运算符
++ ==**下标运算符必须是成员函数。**==
++ *如果一个类包含下标运算符，则它通常会定义两个版本：一个返回普通引用，另一个是类的常量成员并且返回常量引用。*
+```C++
+class StrVec {
+public:
+    std::string& operator[] (std::size_t n)
+    { return elements[n]; }   
+    const std::string& operator[] (std::size_t n) const 
+    { return elements[n]; }
+private:
+    std::string* elements;
+};
+```
+--------------------------
+### 递增和递减运算符
++ ==`C++`语言并不要求递增和递减运算符必须是类的成员，但是因为它们改变的正好是所操作对象的状态，所以建议将其设定为成员函数。==
++ **定义递增和递减运算符的类应该同时定义前置版本和后置版本。这些运算符通常应该被定义成类的成员。**
++ ==**为了与内置版本保持一致，前置运算符应该返回递增或递减后对象的引用。**==
+```C++
+StrBlobPtr &StrBlobPtr::operator++()
+{
+    check (curr, "increment past end of StrBlobPtr");
+    ++curr;
+    return *this;
+}
+
+StrBlobPtr &StrBlobPtr::operator--()
+{
+    --curr;
+    check (curr, "decrement past begin of StrBlobPtr");
+    return *this;
+}
+```
++ ==为了与内置版本保持一致，后值运算符应该返回对象的原值（递增或递减之前的值），返回的形式是一个值而非引用。==
+```C++
+StrBlobPtr StrBlobPtr::operator++(int)
+{
+    StrBlobPtr ret = *this;
+    ++*this;
+    return ret;
+}
+
+StrBlobPtr StrBlobPtr::operator--(int)
+{
+    StrBlobPtr ret = *this;
+    --*this;
+    return ret;
+}
+```
+
+### 成员访问运算符
+```C++
+class StrBlobPtr {
+public:
+    std::string& operator*() const
+    {
+        auto p = check (curr, "dereference past end");
+        return (*p)[curr];
+    }
+    std::string* operator->() const
+    {
+        return &this->operator*();
+    }
+};
+```
++ ==**箭头运算符必须是类的成员。解引用运算符通常也是类的成员，尽管并非必须如此。**==
+
+### 函数调用运算符
++ 函数调用运算符必须是成员函数。一个类可以定义多个不同版本的调用运算符，相互之间应该在参数数量或类型上有所区别。
++ *如果类定义了调用运算符，则该类的对象称作函数对象。
+
+#### 含有状态的函数对象类
+
++ 函数对象类通常含有一些数据成员，这些成员被用于定制调用运算符中的操作。
+
+```C++
+class PrintString {
+public:
+    PrintString (ostream &o = cout, char c = ' '):
+        os (o), sep (c) { }
+    void operator()(const string &s) const 
+    { os << s << sep; }
+private:
+    ostream &os;
+    char sep;
+};
+```
+#### `lambda`是函数对象
+
++ 当我们编写了一个`lambda`后，编译器将该表达是翻译成一个未命名类的未命名对象。在`lambda`表达式产生的类中含有一个重载的函数调用运算符。
+  
+```C++
+stable_sort (words.begin(), word.send(),
+             [] (const string &a, const string &b)
+             { return s1.size() < s2.size()});
+
+class ShorterString {
+public:
+    bool operator() (cnnst string &s1, const string &s2) const
+    { return s1.size() < s2.size(); }
+};
+```
++ 默认情况下`lambda`不能改变它所捕获的变量。因此在默认情况下，有`lambda`产生的类当中的函数调用运算符是一个`const`成员函数。如果`lambda`被声明为可变的，则调用运算符就不是`const`的了。
+
+#### 表示`lambda`及相应捕获行为的类
+
++ ==通过值捕获的变量被拷贝到`lambda`中。因此，这种`lambda`产生的类必须为每个值捕获的变量建立对应的数据成员，同时创建构造函数，令其使用捕获的变量的值来初始化数据成员。==
+```C++
+auto wc = find_if (words.begin(), words.end(),
+                [](const string &a)
+                { return a.size() >= sz;});
+
+class SizeComp {
+public:
+    SizeComp(size_t n): sz (n) { }
+    bool operator()(const string &s) const 
+    {return s.size() >= sz;}
+private:
+    size_t sz;
+};
+```
++ *==`lambda`表达式产生的类不含默认构造函数、赋值运算符及默认析构函数；它是否含有默认的拷贝/移动构造函数则通常要视捕获的数据成员类型而定。==*
+
+### 标准库定义的函数对象
+```C++
+plus<Type>          equal_to<Type>      logical_and<Type>
+minus<Type>         not_equal_to<type>  logical_or<Type>
+multiplies<Type>    greater<Type>       logical_not<Type>
+divides<type>       greater_equal<Type> 
+modulus<Type>       less<Type>
+negate<Type>        less_equal<Type>
+```
+
+### 可调用对象与`function`
+
++ ==`C++`语言中有几种可调用的对象：函数、函数指针、`lambda`表达式、`bind`创建的对象以及重载了函数调用运算符的类。==
+
+#### 标准库`function`类型
+
+```C++
+map<sring, function<int(int, int)>> binops;
+// 我们能把所有可调用对象，包括函数指针、lambda或函数对象在哪内，都添加到这个map中
+
+map<string, function<int(int, int)>> binops = {
+    {"+", add},
+    {"-", std::minus<int>()},
+    {"/", divide()},
+    {"*", [](int i, int j) { return i * j;}},
+    {"%", mod}
+};
+```
+
+#### 重载的函数与`function`
+
++ 我们不能（直接）将重载函数的名字入`function`类型的对象中。
+
+#### 类型转换运算符
+
++ `类型转换运算符`是类的一种特殊成员函数，它负责将一个类类型的值转换成其他类型。类型转换运算符的一般形式如下所示：
+`operator type() const;`
++ ==类型转换运算符既没有显式的返回类型，也没有形参，而且必须定义成类的成员函数。类型转换运算符通常不应该改变待转换对象的内容，因此，类型转换运算符一般被定义成`const`成员。==
++ **==一个类型转换函数必须是类的成员函数；它不能声明返回类型，形参列表也必须为空。类型转换函数通常应该是`const`。
+
+#### 定义含有类型转换运算符的类
+
+```C++
+class SmallInt {
+public:
+    SmallInt (int i = 0): val (i)
+    {
+        if (i < 0 || i > 255)
+            throw std::out_fo_range ("Bad SmallInt value");
+    }
+    operator int() const { return val; }
+private:
+    std::size_t val;
+};
+```
+
+#### 显式的类型转换运算符
+
++ 为了防止这样的一场发生，`C++11`新标准引入了`显式的类型转换运算符`：
+```C++
+class SmallInt {
+public: 
+    explicit operator int() const { return val; }
+};
+```
++ 和显式的构造函数一样，编译器（通常）也不会将一个显式的类型转换运算符用于隐式类型转换。
++ 当类型转换运算符是显式的时，我们也能执行类型转换，不过必需通过显式的强制类型转换才可以。==该规定存在一个例外，即如果表达式被用作条件，则编译器会将显式的类型转换自动应用于它。**换句话说，当表达式出现在下列位置时，显式的类型转换将被隐式地执行：**==
+ > + `if`、`while`及`do`语句的条件部分
+ > + `for`语句头的条件表达式
+ > + 逻辑非运算符（!）、逻辑或运算符（||）、逻辑与运算符（&&）的运算对象
+ > + 条件运算符（? :）的条件表达式。
+
+#### 避免有二义性的类型转换
+
++ 如果类中包含一个或多个类型转换，则必须确保在类类型和目标类型之间只存在唯一一种转换方式。否则的话，我们编写的代码将很可能会具有二义性。
++ ==**不要令两个类执行相同的类型转换：如果`Foo`类有一个接受`Bar`类对象的构造函数，则不要再`Bar`类中再定义转换目标是`Foo`类的类型转换运算符。**==
++ ==**避免转换目标是内置算术类型的类型转换。如果是当你已经定义了一个转换成算术类型的类型转换时，接下来**==
+    > - 不要再定义接受算术类型的重载运算符。
+    > - 不要定义转换到多种算术类型的类型转换。
