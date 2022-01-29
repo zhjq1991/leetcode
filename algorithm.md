@@ -1307,3 +1307,145 @@ public:
     }
 };
 ```
+
+### 74、搜索二维矩阵
+
++ 解法一：两次二分查找
+
+```C++
+class Solution {
+public:
+    bool searchMatrix(vector<vector<int>> matrix, int target) {
+        auto row = upper_bound(matrix.begin(), matrix.end(), target, [](const int b, const vector<int> &a) {
+            return b < a[0];
+        });
+        if (row == matrix.begin()) {
+            return false;
+        }
+        --row;
+        return binary_search(row->begin(), row->end(), target);
+    }
+};
+```
+----------------------
++ 解法二：一次二分查找
+
+```C++
+class Solution {
+public:
+    bool searchMatrix(vector<vector<int>>& matrix, int target) {
+        int m = matrix.size(), n = matrix[0].size();
+        int low = 0, high = m * n - 1;
+        while (low <= high) {
+            int mid = (high - low) / 2 + low;
+            int x = matrix[mid / n][mid % n];
+            if (x < target) {
+                low = mid + 1;
+            } else if (x > target) {
+                high = mid - 1;
+            } else {
+                return true;
+            }
+        }
+        return false;
+    }
+};
+```
+----------------------------------
+### 62、不同路径
++ 解法一：动态规划
+```C++
+class Solution {
+public:
+    int uniquePaths(int m, int n) {
+        vector<vector<int>> f(m, vector<int>(n));
+        for (int i = 0; i < m; ++i) {
+            f[i][0] = 1;
+        }
+        for (int j = 0; j < n; ++j) {
+            f[0][j] = 1;
+        }
+        for (int i = 1; i < m; ++i) {
+            for (int j = 1; j < n; ++j) {
+                f[i][j] = f[i - 1][j] + f[i][j - 1];
+            }
+        }
+        return f[m - 1][n - 1];
+    }
+};
+```
+---------------------
+
+### 63、不同路径 II
+
++ 解法一：动态规划
+```C++
+class Solution {
+public:
+    int uniquePathsWithObstacles(vector<vector<int>>& obstacleGrid) {
+        int n = obstacleGrid.size(), m = obstacleGrid.at(0).size();
+        vector <int> f(m);
+
+        f[0] = (obstacleGrid[0][0] == 0);
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < m; ++j) {
+                if (obstacleGrid[i][j] == 1) {
+                    f[j] = 0;
+                    continue;
+                }
+                if (j - 1 >= 0 && obstacleGrid[i][j - 1] == 0) {
+                    f[j] += f[j - 1];
+                }
+            }
+        }
+
+        return f.back();
+    }
+};
+```
+---------------------------------------
+
+### 1143、最长公共子序列
+
++ 解法一：动态规划
+
+```C++
+class Solution {
+public:
+    int longestCommonSubsequence(string text1, string text2) {
+        int m = text1.length(), n = text2.length();
+        vector<vector<int>> dp(m + 1, vector<int>(n + 1));
+        for (int i = 1; i <= m; i++) {
+            char c1 = text1.at(i - 1);
+            for (int j = 1; j <= n; j++) {
+                char c2 = text2.at(j - 1);
+                if (c1 == c2) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
+                } else {
+                    dp[i][j] = max(dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+        }
+        return dp[m][n];
+    }
+};
+```
+
++ 解法二
+
+```C++
+int longestCommonSubsequence(string &a, string &b) {
+    short m[1001][1001] = {};
+    for (auto i = 0; i < a.size(); ++i)
+        for (auto j = 0; j < b.size(); ++j)
+            m[i + 1][j + 1] = a[i] == b[j] ? m[i][j] + 1 : max(m[i + 1][j], m[i][j + 1]);
+    return m[a.size()][b.size()];
+}
+```
+-----------------------------
+
+### 120、三角形最小路径和
+
++ 解法一动态规划
+
+```C++
