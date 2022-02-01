@@ -1449,3 +1449,64 @@ int longestCommonSubsequence(string &a, string &b) {
 + 解法一动态规划
 
 ```C++
+int minimumTotal(vector<vector<int> > &triangle) {
+    int n = triangle.size();
+    vector<int> minlen(triangle.back());
+    for (int layer = n-2; layer >= 0; layer--) // For each layer
+    {
+        for (int i = 0; i <= layer; i++) // Check its every 'node'
+        {
+            // Find the lesser of its two children, and sum the current value in the triangle with it.
+            minlen[i] = min(minlen[i], minlen[i+1]) + triangle[layer][i]; 
+        }
+    }
+    return minlen[0];
+}
+```
+----------------------------------------
+
+### 53、最大子数组和
+```C++
+class Solution {
+public:
+    int maxSubArray(vector<int>& nums) {
+        int pre = 0, maxAns = nums[0];
+        for (const auto &x: nums) {
+            pre = max(pre + x, x);
+            maxAns = max(maxAns, pre);
+        }
+        return maxAns;
+    }
+};
+```
+---------------------------
+
+### 152、乘积最大子数组
+
++ 动态规划
+
+```C++
+class Solution {
+public:
+    int maxProduct(vector<int>& nums) {
+        vector <int> maxF(nums), minF(nums);
+        for (int i = 1; i < nums.size(); ++i) {
+            maxF[i] = max(maxF[i - 1] * nums[i], max(nums[i], minF[i - 1] * nums[i]));
+            minF[i] = min(minF[i - 1] * nums[i], min(nums[i], maxF[i - 1] * nums[i]));
+        }
+        return *max_element(maxF.begin(), maxF.end());
+    }
+};
+
+
+
+int maxProduct(vector<int> A) {
+    int n = A.size(), res = A[0], l = 0, r = 0;
+    for (int i = 0; i < n; i++) {
+        l =  (l ? l : 1) * A[i];
+        r =  (r ? r : 1) * A[n - 1 - i];
+        res = max(res, max(l, r));
+        }
+    return res;
+}
+```
