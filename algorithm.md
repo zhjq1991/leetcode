@@ -967,7 +967,7 @@ private:
 };
 ```
 
-### 126、单词接龙II
+### ==126、单词接龙II==
 ```C++
     vector<vector<string>> findLadders(string beginWord, string endWord, unordered_set<string> &wordList) {
         //very interesting problem
@@ -1536,3 +1536,127 @@ public:
 };
 ```
 -----
+
+### 198、打家劫舍
+
++ 解法一：动态规划
+
+```C++
+class Solution {
+public:
+    int rob(vector<int>& nums) {
+        if (nums.empty()) {
+            return 0;
+        }
+        int size = nums.size();
+        if (size == 1) {
+            return nums[0];
+        }
+        vector<int> dp = vector<int>(size, 0);
+        dp[0] = nums[0];
+        dp[1] = max(nums[0], nums[1]);
+        for (int i = 2; i < size; i++) {
+            dp[i] = max(dp[i - 2] + nums[i], dp[i - 1]);
+        }
+        return dp[size - 1];
+    }
+};
+
+
+
+
+
+class Solution {
+public:
+    int rob(vector<int>& nums) {
+        if (nums.empty()) {
+            return 0;
+        }
+        int size = nums.size();
+        if (size == 1) {
+            return nums[0];
+        }
+        int first = nums[0], second = max(nums[0], nums[1]);
+        for (int i = 2; i < size; i++) {
+            int temp = second;
+            second = max(first + nums[i], second);
+            first = temp;
+        }
+        return second;
+    }
+};
+```
+
+------------------
+
+### 213、打家劫舍II
+
++ 解法一：动态规划
+
+```C++
+class Solution {
+public:
+    int rob(vector<int>& nums) {
+        if (nums.empty()) {
+            return 0;
+        }
+        int size = nums.size();
+        if (size == 1) {
+            return nums[0];
+        }
+        int first = nums[0], second = max(nums[0], nums[1]);
+        for (int i = 2; i < size; i++) {
+            int temp = second;
+            second = max(first + nums[i], second);
+            first = temp;
+        }
+        return second;
+    }
+};
+```
+
+### 208、实现 `Trie`（前缀树）
+
+```C++
+class Trie {
+private:
+    vector<Trie*> children;
+    bool isEnd;
+
+    Trie* searchPrefix(string prefix) {
+        Trie* node = this;
+        for (char ch : prefix) {
+            ch -= 'a';
+            if (node->children[ch] == nullptr) {
+                return nullptr;
+            }
+            node = node->children[ch];
+        }
+        return node;
+    }
+
+public:
+    Trie() : children(26), isEnd(false) {}
+
+    void insert(string word) {
+        Trie* node = this;
+        for (char ch : word) {
+            ch -= 'a';
+            if (node->children[ch] == nullptr) {
+                node->children[ch] = new Trie();
+            }
+            node = node->children[ch];
+        }
+        node->isEnd = true;
+    }
+
+    bool search(string word) {
+        Trie* node = this->searchPrefix(word);
+        return node != nullptr && node->isEnd;
+    }
+
+    bool startsWith(string prefix) {
+        return this->searchPrefix(prefix) != nullptr;
+    }
+};
+```
